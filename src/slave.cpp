@@ -24,7 +24,7 @@ bool stop_callback(std_srvs::Empty::Request &req,
 bool start_callback(std_srvs::Empty::Request &req,
                     std_srvs::Empty::Response &resp) {
     ROS_INFO("[*] Slave: Starting...");
-    MoveBaseClient slave_client("mb", true);
+    MoveBaseClient slave_client("move_base", true);
     while(!slave_client.waitForServer(ros::Duration(5.0))){
         ROS_INFO("[*] Slave: Waiting for the move_base action server");
     }
