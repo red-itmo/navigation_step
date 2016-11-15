@@ -2,9 +2,8 @@
 
 <launch>
 
-<arg name="scan" value="scan"/>
-<node name="slam_gmapping" pkg="gmapping" type="slam_gmapping"
-args="scan:=$(arg scan) _xmin:=-10 _ymin:=-10 _xmax:=10 _ymax:=10" />
+<!-- GMapping -->
+<include file="$(find navigation_step)/launch/gmapping.launch" />
 
 <!-- Rviz -->
 <node name="rviz" pkg="rviz" type="rviz"

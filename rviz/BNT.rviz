@@ -6,7 +6,8 @@ Panels:
       Expanded:
         - /Global Options1
         - /Status1
-        - /Grid1/Status1
+        - /Axes1
+        - /Axes2
       Splitter Ratio: 0.5
     Tree Height: 435
   - Class: rviz/Selection
@@ -64,6 +65,13 @@ Visualization Manager:
       Name: Map
       Topic: /map
       Unreliable: false
+      Value: true
+    - Class: rviz/Axes
+      Enabled: true
+      Length: 1
+      Name: Axes
+      Radius: 0.1
+      Reference Frame: map
       Value: true
   Enabled: true
   Global Options:
