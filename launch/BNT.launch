@@ -7,7 +7,7 @@
 		args="$(find navigation_step)/map/map.yaml" />
 
 	<!-- move_base with params -->
-	<include file="$(find youbot_navigation_global)/launch/move_base_global.launch" />
+	<include file="$(find navigation_step)/launch/move_base.launch" />
 
 	<!-- AMCL -->
 	<include file="$(find youbot_navigation_global)/launch/amcl.launch" />
