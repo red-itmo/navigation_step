@@ -5,6 +5,7 @@ raytrace_range: 5.0
 inflation_radius: 0.4
 track_unknown_space: true
 footprint_clearing_enabled: true
+transform_tolerance: 0.6
 
 observation_sources: scan
 
