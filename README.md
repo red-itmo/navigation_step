@@ -2,7 +2,7 @@
 
 ##Instalation
 
-1) Install youBot ROS pacages
+1) Install youBot ROS packages
 
     $ sudo apt-get install ros-indigo-navigation
     $ sudo apt-get install ros-indigo-youbot-description ros-indigo-youbot-driver-ros-interface
