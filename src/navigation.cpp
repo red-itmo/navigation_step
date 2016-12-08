@@ -9,7 +9,7 @@
 
 #include <navigation.h>
 
-Navi::Navi(): nh("~")
+Navi::Navi(): nh_("~")
 {
     clked_pnt_sub = nh.subscribe("clicked_point", 30, clkd_pnt_callback)
     start_srv = nh.advertiseService("start", start_callback)

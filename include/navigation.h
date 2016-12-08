@@ -18,8 +18,9 @@
 #include <geometry_msgs/PointStamped.h>
 #include <move_base_msgs/MoveBaseAction.h>
 #include <actionlib/client/simple_action_client.h>
+#include <actionlib/server/simple_action_server.h>
 
-calss Navi
+class Navi
 {
     public:
         Navi();
@@ -27,13 +28,17 @@ calss Navi
         spin();
 
     private:
-        ros::NodeHandle nh;
+        ros::NodeHandle nh_;
 
         ros::Subscriber clked_pnt_sub;          //points from MoveBaseServer
         //ros::Subscriber pnt_sub;                //points from any other nodes
 
-        //ACTIONLIB should used to communicate with CONTROL_NODE
-        // +++++++++++++
+        // ACTIONLIB should used to communicate with CONTROL_NODE
+        actionlib::SimpleActionServer</*msg_type??*/> MoveToPointAS_;
+        std::string action_name_;
+
+
+        // Handle mode
         ros::ServiceServer start_srv;
         bool start_callback (std_srvs::Empty::Request& req, std_srvs::Empty::Response&);
         // +++++++++++++
