@@ -1,9 +1,9 @@
 #goal definition
 geometry_msgs/Pose2D POSE
-Time DURATION
+uint32 DURATION
 ---
 #result definition
-Bool RESULT
+bool RESULT
 ---
 #feedback
 geometry_msgs/Pose2D currentPOSE

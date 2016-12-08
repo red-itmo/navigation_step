@@ -37,7 +37,8 @@ void point_callback(const geometry_msgs::Point::ConstPtr& point) {
 }
 
 
-void pointstamped_callback(const geometry_msgs::PointStamped::ConstPtr& stamped) {
+void pointstamped_callback(const geometry_msgs::PointStamped::ConstPtr& stamped)
+{
     ROS_INFO("[+] Master: got stamped point.");
     pub_slave_point.publish(stamped->point);
 }

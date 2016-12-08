@@ -12,6 +12,7 @@ find_package(
 	actionlib
 	message_generation
 	actionlib_msgs
+	tf
 )
 
 ## System dependencies are found with CMake's conventions
@@ -59,15 +60,14 @@ find_package(
 ## Generate actions in the 'action' folder
 add_action_files(
   DIRECTORY action
-  FILES Destination.action Twist.action
+  FILES Destination.action SetVelDir.action
 )
 
 ## Generate added messages and services with any dependencies listed here
 generate_messages(
 	DEPENDENCIES
-	actionlib_msgs
-	geometry_msgs
- 	std_msgs  # Or other packages containing msgs
+	actionlib_msgs geometry_msgs std_msgs
+	# Or other packages containing msgs
 )
 
 ################################################
@@ -112,7 +112,11 @@ catkin_package(
 
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
-include_directories(include ${catkin_INCLUDE_DIRS})
+include_directories(
+		${catkin_INCLUDE_DIRS}
+		src
+		include
+		include/actionlib_msgs)
 
 
 ## Declare a C++ library
@@ -127,8 +131,8 @@ include_directories(include ${catkin_INCLUDE_DIRS})
 
 ## Declare a C++ executable
 # add_executable(agitr_node src/agitr_node.cpp)
-add_executable(master src/master.cpp)
-add_executable(slave src/slave.cpp)
+# add_executable(master src/master.cpp)
+# add_executable(slave src/slave.cpp)
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
@@ -138,8 +142,8 @@ add_executable(slave src/slave.cpp)
 # target_link_libraries(agitr_node
 #   ${catkin_LIBRARIES}
 # )
-target_link_libraries(master ${catkin_LIBRARIES})
-target_link_libraries(slave ${catkin_LIBRARIES})
+# target_link_libraries(master ${catkin_LIBRARIES})
+# target_link_libraries(slave ${catkin_LIBRARIES})
 
 #############
 ## Install ##
