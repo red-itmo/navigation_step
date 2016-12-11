@@ -51,16 +51,15 @@ find_package(
 # )
 
 ## Generate services in the 'srv' folder
-# add_service_files(
-#   FILES
-#   Service1.srv
-#   Service2.srv
-# )
+add_service_files(
+FILES
+Twist.srv
+)
 
 ## Generate actions in the 'action' folder
 add_action_files(
   DIRECTORY action
-  FILES Destination.action SetVelDir.action
+  FILES Dest.action
 )
 
 ## Generate added messages and services with any dependencies listed here
@@ -115,8 +114,7 @@ catkin_package(
 include_directories(
 		${catkin_INCLUDE_DIRS}
 		src
-		include
-		include/actionlib_msgs)
+		include)
 
 
 ## Declare a C++ library
@@ -130,20 +128,19 @@ include_directories(
 # add_dependencies(agitr ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Declare a C++ executable
-# add_executable(agitr_node src/agitr_node.cpp)
-# add_executable(master src/master.cpp)
-# add_executable(slave src/slave.cpp)
+add_executable(navi_node src/main.cpp src/navigation.cpp)
+
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
-# add_dependencies(agitr_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_dependencies(navi_node navigation_step_generate_messages_cpp)
+#${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
-# target_link_libraries(agitr_node
-#   ${catkin_LIBRARIES}
-# )
-# target_link_libraries(master ${catkin_LIBRARIES})
-# target_link_libraries(slave ${catkin_LIBRARIES})
+target_link_libraries(navi_node
+  ${catkin_LIBRARIES}
+)
+
 
 #############
 ## Install ##

@@ -1,6 +1,4 @@
 /*
- * Code reorganization for navigation step.
- *
  *  Created on: 12.05.2016
  *       Email: Nicko_Dema@protonmail.com
  *              ITMO University
@@ -13,6 +11,7 @@
 #include <ros/ros.h>
 #include <tf/tf.h>
 #include <std_srvs/Empty.h>
+#include <ros/callback_queue.h>
 #include <geometry_msgs/Twist.h>
 #include <geometry_msgs/Point.h>
 #include <geometry_msgs/PointStamped.h>
@@ -20,36 +19,44 @@
 #include <actionlib/client/simple_action_client.h>
 #include <actionlib/server/simple_action_server.h>
 
-#include <navigation_step/DestinationAction.h>
-#include <navigation_step/SetVelDirAction.h>
+#include <navigation_step/DestAction.h>
+#include <navigation_step/Twist.h>
 
 class Navi
 {
     public:
-        Navi();
+        Navi(std::string);
         ~Navi();
-        spin();
+        void spin();
 
-    private:
+    protected:
         ros::NodeHandle nh_;
 
-        ros::Subscriber clked_pnt_sub;          //points from MoveBaseServer
-        //ros::Subscriber pnt_sub;                //points from any other nodes
+        unsigned char mode;
+        enum modes
+        {
+            move_to_point = 0x01,
+            twisting      = 0x02            //
+            // ++++
+        };
 
-        // ACTIONLIB should used to communicate with CONTROL_NODE
-        actionlib::SimpleActionServer</*msg_type??*/> MoveToPointAS_;
-        std::string action_name_;
+        // ACTIONLIB used to communicate with CONTROL_NODE
+        //actionlib::SimpleActionServer<navigation_step::DestAction> dest_as;
+        //void execute_cb(const navigation_step::DestGoalConstPtr)        // &goal??
+        //std::string action_name_d_;
 
+        //ACTIONLIB client for move_base
+        //actionlib::SimpleActionClient<move_base_msgs::MoveBaseAction> move_base_ac;
 
-        // Handle mode
-        ros::ServiceServer start_srv;
-        bool start_callback (std_srvs::Empty::Request& req, std_srvs::Empty::Response&);
-        // +++++++++++++
+        ros::ServiceServer stop_srv;
+        ros::ServiceServer set_twist_srv;
 
-        void clkd_pnt_callback (const geometry_msgs::PointStamped::ConstPtr&);
+        bool stop_cb (std_srvs::Empty::Request&, std_srvs::Empty::Response&);
+        bool set_twist_cb (navigation_step::Twist::Request&, navigation_step::Twist::Response&);
 
-}
+        ros::Publisher twist_pub;     //????
+        geometry_msgs::Twist twist_msg;
 
-
+};
 
 #endif  /*NAV_STEP_*/

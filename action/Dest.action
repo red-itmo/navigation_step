@@ -1,6 +1,7 @@
 #goal definition
-geometry_msgs/Pose2D POSE
-uint32 DURATION
+string dest_loc
+string orientation
+uint32 duration
 ---
 #result definition
 bool RESULT
