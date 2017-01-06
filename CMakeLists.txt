@@ -1,8 +1,7 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(navigation_step)
 
-find_package(
-	catkin REQUIRED COMPONENTS
+find_package (catkin REQUIRED COMPONENTS
 	roscpp
 	rospy
 	std_msgs
@@ -14,6 +13,8 @@ find_package(
 	actionlib_msgs
 	tf
 )
+
+find_package (Boost REQUIRED COMPONENTS filesystem)
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -54,6 +55,8 @@ find_package(
 add_service_files(
 FILES
 Twist.srv
+Manual.srv
+Dict.srv
 )
 
 ## Generate actions in the 'action' folder

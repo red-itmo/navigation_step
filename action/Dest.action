@@ -4,7 +4,7 @@ string orientation
 uint32 duration
 ---
 #result definition
-bool RESULT
+bool had_got
 ---
 #feedback
-geometry_msgs/Pose2D currentPOSE
+geometry_msgs/Pose2D range_to_pnt
