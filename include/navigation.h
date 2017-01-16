@@ -28,8 +28,9 @@
 #include <actionlib/server/simple_action_server.h>
 
 #include <navigation_step/DestAction.h>
-#include <navigation_step/Twist.h>
+#include <navigation_step/PointData.h>
 #include <navigation_step/Manual.h>
+#include <navigation_step/Twist.h>
 #include <navigation_step/Dict.h>
 
 class Navi
@@ -72,12 +73,16 @@ class Navi
         ros::ServiceServer dict_srv;
         ros::ServiceServer mode_srv;
 
+        ros::ServiceClient get_point_cli;
+        ros::ServiceServer get_point_srv;
+
         bool stop_cb (std_srvs::Empty::Request&, std_srvs::Empty::Response&);
         bool mode_cb (std_srvs::Empty::Request&, std_srvs::Empty::Response&);
         bool set_twist_cb (navigation_step::Twist::Request&, navigation_step::Twist::Response&);
         bool manual_cb (navigation_step::Manual::Request&, navigation_step::Manual::Response&);
         bool dict_cb (navigation_step::Dict::Request&, navigation_step::Dict::Response&);
-
+        bool get_point_cb (std_srvs::Empty::Request&, std_srvs::Empty::Response&);
+        
         ros::Publisher twist_pub;
         geometry_msgs::Twist twist_msg;
 

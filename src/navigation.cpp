@@ -22,7 +22,9 @@ Navi::Navi(std::string node_name): nh_("~")
     stop_srv = nh_.advertiseService("stop", &Navi::stop_cb, this);
     dict_srv = nh_.advertiseService("dict",&Navi::dict_cb, this);
     mode_srv = nh_.advertiseService("mode",&Navi::mode_cb, this);
-
+    get_point_srv = nh_.advertiseService("get_point",&Navi::get_point_cb, this);
+    get_point_cli = nh_.serviceClient<navigation_step::PointData>("point_data");
+//!!!!!!!!!!!!!!!!!!
     mode = 0x00;
     if (init_dict_load()) mode |= ld_pnts;
 
@@ -83,13 +85,15 @@ bool Navi::set_twist_cb (navigation_step::Twist::Request&  req,
         twist_msg.linear.y = req.twist.linear.y;
         twist_msg.angular.z = req.twist.angular.z;
         ROS_INFO("[Navi]: Twisting mode is set.");
-        if ((mode & (move_to_point | twisting)) == (move_to_point | twisting))
-        {
-            ROS_INFO("[Navi]: !!!!");
-        }
         return true;
     }
 }
+
+bool Navi::get_point_cb (std_srvs::Empty::Request&  req,
+                         std_srvs::Empty::Response& res)
+    {
+        123;//!!!!!!!!!!!!!!!!!!!!!
+    }
 
 bool Navi::mode_cb (std_srvs::Empty::Request&  req,
                     std_srvs::Empty::Response& res)
@@ -100,14 +104,10 @@ bool Navi::mode_cb (std_srvs::Empty::Request&  req,
 }
 
 
-//Требуется передача параметра --- создать новый словарь или писать в старый
-//Параметр для создания нового словоря "new"
-//Параметр для использования текущего словаря "current"
-//Требуется реализовать возможность сохранения старого словаря
-//Отсутствие папки dict в пакете также не должно быть проблемой
-//Продумать тип сообщения и парсер для него
-//Продумать взаимодействие с другими режимами
-//Вызов stop сервиса для сохранения
+//Режим для ручного управления и работы со словарями
+//В запросе должна содержаться строка:
+// current / new / reserve / movement_only
+//Выход из режима и загрузка словаря вызовом сервиса stop
 bool Navi::manual_cb (navigation_step::Manual::Request&  req,
                       navigation_step::Manual::Response& res)
 {

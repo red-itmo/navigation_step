@@ -57,6 +57,7 @@ FILES
 Twist.srv
 Manual.srv
 Dict.srv
+PointData.srv
 )
 
 ## Generate actions in the 'action' folder
