@@ -49,7 +49,7 @@ class Navi
             twisting       = 0x02,
             manual         = 0x04,
             ld_pnts        = 0x08,      //This flag means the dictionary had been loaded
-            res_dict       = 0x16       //This flag is set when the reserve dict is used
+            res_dict       = 0x10       //This flag is set when the reserve dict is used
             // ++++
         };
 
@@ -70,8 +70,10 @@ class Navi
         ros::ServiceServer manual_srv;
         ros::ServiceServer set_twist_srv;
         ros::ServiceServer dict_srv;
+        ros::ServiceServer mode_srv;
 
         bool stop_cb (std_srvs::Empty::Request&, std_srvs::Empty::Response&);
+        bool mode_cb (std_srvs::Empty::Request&, std_srvs::Empty::Response&);
         bool set_twist_cb (navigation_step::Twist::Request&, navigation_step::Twist::Response&);
         bool manual_cb (navigation_step::Manual::Request&, navigation_step::Manual::Response&);
         bool dict_cb (navigation_step::Dict::Request&, navigation_step::Dict::Response&);

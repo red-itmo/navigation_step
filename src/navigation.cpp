@@ -21,8 +21,9 @@ Navi::Navi(std::string node_name): nh_("~")
     manual_srv = nh_.advertiseService("manual",&Navi::manual_cb, this);
     stop_srv = nh_.advertiseService("stop", &Navi::stop_cb, this);
     dict_srv = nh_.advertiseService("dict",&Navi::dict_cb, this);
+    mode_srv = nh_.advertiseService("mode",&Navi::mode_cb, this);
 
-    mode = 0;
+    mode = 0x00;
     if (init_dict_load()) mode |= ld_pnts;
 
 }
@@ -82,13 +83,26 @@ bool Navi::set_twist_cb (navigation_step::Twist::Request&  req,
         twist_msg.linear.y = req.twist.linear.y;
         twist_msg.angular.z = req.twist.angular.z;
         ROS_INFO("[Navi]: Twisting mode is set.");
+        if ((mode & (move_to_point | twisting)) == (move_to_point | twisting))
+        {
+            ROS_INFO("[Navi]: !!!!");
+        }
         return true;
     }
 }
 
+bool Navi::mode_cb (std_srvs::Empty::Request&  req,
+                    std_srvs::Empty::Response& res)
+{
+    std::string str = std::to_string(mode);
+    ROS_INFO("[Navi]: Mode: %s", str.c_str());
+    return true;
+}
+
+
 //Требуется передача параметра --- создать новый словарь или писать в старый
-//Параметр для создания нового словоря "new_dict"
-//Параметр для использования текущего словаря "cur_dict"
+//Параметр для создания нового словоря "new"
+//Параметр для использования текущего словаря "current"
 //Требуется реализовать возможность сохранения старого словаря
 //Отсутствие папки dict в пакете также не должно быть проблемой
 //Продумать тип сообщения и парсер для него
@@ -98,7 +112,7 @@ bool Navi::manual_cb (navigation_step::Manual::Request&  req,
                       navigation_step::Manual::Response& res)
 {
     //Проверка текущего режима
-    if ((mode & (move_to_point | twisting)) == (move_to_point | twisting))
+    if (((mode & move_to_point) == move_to_point) || ((mode & twisting) == twisting))
     {
         ROS_INFO("[Navi]: Call stop service!");
         return false;
@@ -112,12 +126,13 @@ bool Navi::manual_cb (navigation_step::Manual::Request&  req,
             if ((mode & ld_pnts) == ld_pnts)
             {
                 dict_fs.open(dfile_path+"/points.dict", std::fstream::out |
-                                                        std::fstream::app | std::fstream::in);
+                                                        std::fstream::app |
+                                                        std::fstream::in);
                 if (dict_fs.is_open())
                 {
-                    ROS_INFO("[Navi]: Manual mode on.");
                     mode |= manual;
                     mode &= ~(res_dict);
+                    ROS_INFO("[Navi]: Manual mode on.");
                 }
                 else
                 {
@@ -169,7 +184,7 @@ bool Navi::manual_cb (navigation_step::Manual::Request&  req,
                 while (std::getline(dict_fs, buff)) res_dict_fs << buff << std::endl;
                 res_dict_fs.close();
                 dict_fs.close();
-                ROS_INFO("[Navi]: --------");
+                ROS_INFO("[Navi]: Save a current as a reserve.");
             }
             dict_fs.open(dfile_path+"/points.dict", std::fstream::out |
                                                     std:: fstream::trunc);
