@@ -18,6 +18,8 @@
 
 #include <ros/ros.h>
 #include <tf/tf.h>
+#include <tf/transform_broadcaster.h>
+#include <tf/transform_listener.h>
 #include <std_srvs/Empty.h>
 #include <ros/callback_queue.h>
 #include <geometry_msgs/Twist.h>
@@ -73,16 +75,16 @@ class Navi
         ros::ServiceServer dict_srv;
         ros::ServiceServer mode_srv;
 
-        ros::ServiceClient get_point_cli;
-        ros::ServiceServer get_point_srv;
+        ros::ServiceClient point_catcher_cli;
+        ros::ServiceServer point_catcher_srv;
 
         bool stop_cb (std_srvs::Empty::Request&, std_srvs::Empty::Response&);
         bool mode_cb (std_srvs::Empty::Request&, std_srvs::Empty::Response&);
         bool set_twist_cb (navigation_step::Twist::Request&, navigation_step::Twist::Response&);
         bool manual_cb (navigation_step::Manual::Request&, navigation_step::Manual::Response&);
         bool dict_cb (navigation_step::Dict::Request&, navigation_step::Dict::Response&);
-        bool get_point_cb (std_srvs::Empty::Request&, std_srvs::Empty::Response&);
-        
+        bool point_catcher_cb (std_srvs::Empty::Request&, std_srvs::Empty::Response&);
+
         ros::Publisher twist_pub;
         geometry_msgs::Twist twist_msg;
 

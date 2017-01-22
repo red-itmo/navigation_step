@@ -22,8 +22,9 @@ Navi::Navi(std::string node_name): nh_("~")
     stop_srv = nh_.advertiseService("stop", &Navi::stop_cb, this);
     dict_srv = nh_.advertiseService("dict",&Navi::dict_cb, this);
     mode_srv = nh_.advertiseService("mode",&Navi::mode_cb, this);
-    get_point_srv = nh_.advertiseService("get_point",&Navi::get_point_cb, this);
-    get_point_cli = nh_.serviceClient<navigation_step::PointData>("point_data");
+
+    point_catcher_srv = nh_.advertiseService("point_catcher",&Navi::point_catcher_cb, this);
+    point_catcher_cli = nh_.serviceClient<navigation_step::PointData>("point_data");
 //!!!!!!!!!!!!!!!!!!
     mode = 0x00;
     if (init_dict_load()) mode |= ld_pnts;
@@ -89,11 +90,49 @@ bool Navi::set_twist_cb (navigation_step::Twist::Request&  req,
     }
 }
 
-bool Navi::get_point_cb (std_srvs::Empty::Request&  req,
-                         std_srvs::Empty::Response& res)
+bool Navi::point_catcher_cb (std_srvs::Empty::Request&  req,
+                             std_srvs::Empty::Response& res)
+{
+    if ((mode & manual) == manual)
     {
-        123;//!!!!!!!!!!!!!!!!!!!!!
+        navigation_step::PointData srv;
+        if (point_catcher_cli.call(srv))
+        {
+            tf::TransformListener listener;
+            tf::StampedTransform transform;
+            static tf::TransformBroadcaster br;
+            transform.setOrigin(tf::Vector3(srv.response.position.x, srv.response.position.y, 0.0));
+            transform.setRotation(tf::Quaternion(0, 0, 0, 1));
+            br.sendTransform(tf::StampedTransform(transform, ros::Time::now(),
+                             "/base_link", srv.response.name));
+            try{
+                listener.lookupTransform("/map", srv.response.name, ros::Time(0), transform);
+            }
+            catch (tf::TransformException &ex)
+            {
+                ROS_ERROR("%s",ex.what());
+                return false;
+            }
+            br.sendTransform(tf::StampedTransform(transform, ros::Time::now(),
+                             "/base_link", srv.response.name));
+
+            points[srv.response.name] = std::make_pair(transform.getOrigin().x()
+                                                      ,transform.getOrigin().y());
+        }
+        else
+        {
+            ROS_INFO("[Navi]: Failed to call service \"point_data\".");
+            return false;
+        }
+        return true;
     }
+    else
+    {
+        ROS_INFO("[Navi]: You are not in the manual mode.");
+        return false;
+    }
+
+}
 
 bool Navi::mode_cb (std_srvs::Empty::Request&  req,
                     std_srvs::Empty::Response& res)
