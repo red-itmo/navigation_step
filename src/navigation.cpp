@@ -7,14 +7,14 @@
 
 #include <navigation.h>
 
-Navi::Navi(std::string node_name): nh_("~")
-    // ,dest_as(nh_, node_name, boost::bind(&Navi::execute_cb, this, _1), false),
-    // action_name_d_(node_name+"_dest_as"),
-    // move_base_ac("move_base", true),
-    , pnt_extr_regex("^[\\s]*([[:alnum:]]+)[\\s]*->[\\s]*([\\+|-]?(\\d+\\.?\\d*)|(\\.\\d+))"
+Navi::Navi(std::string node_name): nh_("~"),
+    dest_as(nh_, node_name, boost::bind(&Navi::execute_cb, this, _1), false),
+    action_name_d_(node_name+"_dest_as"),
+    move_base_ac("move_base", true),
+    pnt_extr_regex("^[\\s]*([[:alnum:]]+)[\\s]*->[\\s]*([\\+|-]?(\\d+\\.?\\d*)|(\\.\\d+))"
                "[\\s]*:{1}[\\s]*([\\+|-]?(\\d+\\.?\\d*)|(\\.\\d+))")
 {
-    // dest_as.start();
+    dest_as.start();
     twist_pub = nh_.advertise<geometry_msgs::Twist>("/cmd_vel", 2, true); //??
 
     set_twist_srv = nh_.advertiseService("set_twist", &Navi::set_twist_cb, this);
@@ -31,12 +31,29 @@ Navi::Navi(std::string node_name): nh_("~")
 
 }
 
-// void execute_cb(const navigation_step::DestGoalConstPtr &goal)
-// {
-//
-//     ROS_INFO("[Navi]: Waiting for the move_base action server.");
-//     move_base_ac.waitForServer()
-//     ROS_INFO("[Navi]: Move_base action server has started.");
+void execute_cb(const navigation_step::DestGoalConstPtr &goal)
+{
+
+    ros::Rate r(1);
+    bool success = true;
+
+    while(!move_base_ac.waitForServer(ros::Duration(5.0))){
+        ROS_INFO("Waiting for the move_base action server to come up");
+    }
+    if (!move_base_ac.isServerConnected())
+    {
+        ROS_INFO("Connection to move_base action server filed.");
+        success = false;
+        as_.setAborted(success);
+    }
+    else
+    {
+        move_base_msgs::MoveBaseGoal goal_mb;
+        goal_m.target_pose.header.frame_id = "/map";
+        goal_m.target_pose.header.stamp = ros::Time();
+
+    }
+
 //
 //     //Парсинг goal
 //     //Поиск в словаре
@@ -58,19 +75,12 @@ Navi::Navi(std::string node_name): nh_("~")
 //
 //     ROS_INFO("[+] Slave: sending goal-point {%f, %f}", point.x, point.y);
 //     slave_client.sendGoal(goal_mb);
-//     //slave_client.waitForResult(); -- без этого.
 //
 //     ros::Duration(3).sleep();
-//
-//     return true;
-// }
 
-// void Navi::make_pnt_callback ();
-// {
-//       //For manual mode.
-//       //Here we should call a CV-service which will give as a lettering of point.
-//       //After this, we should bind our position with gotten point and store it.
-// }
+    return true;
+}
+
 
 bool Navi::set_twist_cb (navigation_step::Twist::Request&  req,
                          navigation_step::Twist::Response& res)
@@ -409,9 +419,6 @@ bool Navi::load_points()
         return true;
     }
 }
-
-
-
 
 Navi::~Navi()
 {

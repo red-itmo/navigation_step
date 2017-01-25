@@ -62,12 +62,12 @@ class Navi
         std::fstream dict_fs;
 
         // ACTIONLIB used to communicate with CONTROL_NODE
-        // actionlib::SimpleActionServer<navigation_step::DestAction> dest_as;
-        // void execute_cb(const navigation_step::DestGoalConstPtr&)        // &goal??
-        // std::string action_name_d_;
+        actionlib::SimpleActionServer<navigation_step::DestAction> dest_as;
+        void execute_cb(const navigation_step::DestGoalConstPtr&)        // &goal??
+        std::string action_name_d_;
 
         //ACTIONLIB client for move_base
-        // actionlib::SimpleActionClient<move_base_msgs::MoveBaseAction> move_base_ac;
+        actionlib::SimpleActionClient<move_base_msgs::MoveBaseAction> move_base_ac;
 
         ros::ServiceServer stop_srv;
         ros::ServiceServer manual_srv;
