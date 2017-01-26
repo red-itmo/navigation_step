@@ -30,6 +30,7 @@
 #include <actionlib/server/simple_action_server.h>
 
 #include <navigation_step/DestAction.h>
+#include <navigation_step/SetOrientation.h>
 #include <navigation_step/PointData.h>
 #include <navigation_step/Manual.h>
 #include <navigation_step/Twist.h>
@@ -63,8 +64,8 @@ class Navi
 
         // ACTIONLIB used to communicate with CONTROL_NODE
         actionlib::SimpleActionServer<navigation_step::DestAction> dest_as;
-        void execute_cb(const navigation_step::DestGoalConstPtr&)        // &goal??
-        std::string action_name_d_;
+        void execute_cb(const navigation_step::DestGoalConstPtr&);        // &goal??
+        std::string dest_as_name;
 
         //ACTIONLIB client for move_base
         actionlib::SimpleActionClient<move_base_msgs::MoveBaseAction> move_base_ac;
@@ -72,6 +73,7 @@ class Navi
         ros::ServiceServer stop_srv;
         ros::ServiceServer manual_srv;
         ros::ServiceServer set_twist_srv;
+        ros::ServiceServer set_orientation_srv;
         ros::ServiceServer dict_srv;
         ros::ServiceServer mode_srv;
 
@@ -80,6 +82,7 @@ class Navi
 
         bool stop_cb (std_srvs::Empty::Request&, std_srvs::Empty::Response&);
         bool mode_cb (std_srvs::Empty::Request&, std_srvs::Empty::Response&);
+        bool set_orientation_cb (navigation_step::SetOrientation::Request&, navigation_step::SetOrientation::Response&);
         bool set_twist_cb (navigation_step::Twist::Request&, navigation_step::Twist::Response&);
         bool manual_cb (navigation_step::Manual::Request&, navigation_step::Manual::Response&);
         bool dict_cb (navigation_step::Dict::Request&, navigation_step::Dict::Response&);

@@ -9,7 +9,7 @@
 
 Navi::Navi(std::string node_name): nh_("~"),
     dest_as(nh_, node_name, boost::bind(&Navi::execute_cb, this, _1), false),
-    action_name_d_(node_name+"_dest_as"),
+    dest_as_name(node_name+"_dest_as"),
     move_base_ac("move_base", true),
     pnt_extr_regex("^[\\s]*([[:alnum:]]+)[\\s]*->[\\s]*([\\+|-]?(\\d+\\.?\\d*)|(\\.\\d+))"
                "[\\s]*:{1}[\\s]*([\\+|-]?(\\d+\\.?\\d*)|(\\.\\d+))")
@@ -22,20 +22,23 @@ Navi::Navi(std::string node_name): nh_("~"),
     stop_srv = nh_.advertiseService("stop", &Navi::stop_cb, this);
     dict_srv = nh_.advertiseService("dict",&Navi::dict_cb, this);
     mode_srv = nh_.advertiseService("mode",&Navi::mode_cb, this);
+    set_orientation_srv = nh_.advertiseService("set_orientation",
+                                                &Navi::set_orientation_cb, this);
 
     point_catcher_srv = nh_.advertiseService("point_catcher",&Navi::point_catcher_cb, this);
     point_catcher_cli = nh_.serviceClient<navigation_step::PointData>("point_data");
-//!!!!!!!!!!!!!!!!!!
+
     mode = 0x00;
     if (init_dict_load()) mode |= ld_pnts;
-
 }
 
-void execute_cb(const navigation_step::DestGoalConstPtr &goal)
+void Navi::execute_cb(const navigation_step::DestGoalConstPtr &goal)
 {
 
+    navigation_step::DestResult result;
+    result.has_got = true;
     ros::Rate r(1);
-    bool success = true;
+    //bool success = true;
 
     while(!move_base_ac.waitForServer(ros::Duration(5.0))){
         ROS_INFO("Waiting for the move_base action server to come up");
@@ -43,27 +46,30 @@ void execute_cb(const navigation_step::DestGoalConstPtr &goal)
     if (!move_base_ac.isServerConnected())
     {
         ROS_INFO("Connection to move_base action server filed.");
-        success = false;
-        as_.setAborted(success);
+        result.has_got = false;
+        dest_as.setAborted(result);
     }
     else
     {
         move_base_msgs::MoveBaseGoal goal_mb;
-        goal_m.target_pose.header.frame_id = "/map";
-        goal_m.target_pose.header.stamp = ros::Time();
+        goal_mb.target_pose.header.frame_id = "/map";
+        goal_mb.target_pose.header.stamp = ros::Time();
+        goal_mb.target_pose.pose.position.x = points[goal->dest_loc].first;
+        goal_mb.target_pose.pose.position.y = points[goal->dest_loc].second;
+        goal_mb.target_pose.pose.orientation = tf::createQuaternionMsgFromYaw(points[goal->orientation].first);
+        ROS_INFO("Some info about the goal.");
 
+        move_base_ac.sendGoal(goal_mb);
+        move_base_ac.waitForResult();
+        if(move_base_ac.getState() == actionlib::SimpleClientGoalState::SUCCEEDED) {
+            ros::Duration(goal->duration).sleep();
+        }
+        else {
+            result.has_got = false;
+        }
+        dest_as.setSucceeded(result);
     }
 
-//
-//     //Парсинг goal
-//     //Поиск в словаре
-//     //Задание точки
-//     geometry_msgs::Point point =
-//
-//     //Отправка точки
-//     move_base_msgs::MoveBaseGoal goal_mb;
-//     goal.target_pose.header.frame_id = "map";
-//     goal.target_pose.header.stamp = ros::Time::now();
 //     goal.target_pose.pose.position = point;
 //         // tf::Quaternion q(90, 0, 0);
 //         // goal.target_pose.pose.orientation.x = (double)q.x();
@@ -77,8 +83,6 @@ void execute_cb(const navigation_step::DestGoalConstPtr &goal)
 //     slave_client.sendGoal(goal_mb);
 //
 //     ros::Duration(3).sleep();
-
-    return true;
 }
 
 
@@ -142,6 +146,35 @@ bool Navi::point_catcher_cb (std_srvs::Empty::Request&  req,
         return false;
     }
 
+}
+
+bool Navi::set_orientation_cb (navigation_step::SetOrientation::Request&  req,
+                               navigation_step::SetOrientation::Response& res)
+{
+    if ((mode & manual) == manual)
+    {
+        tf::TransformListener listener;
+        tf::StampedTransform transform;
+        double roll, pitch, yaw;
+        try{
+            listener.lookupTransform("/map", "/base_link", ros::Time(0), transform);
+        }
+        catch (tf::TransformException &ex)
+        {
+            ROS_ERROR("%s",ex.what());
+            return false;
+        }
+        transform.getBasis().getRPY(roll, pitch, yaw);
+        points[req.orientation] = std::make_pair(yaw,0);
+        std::string str = std::to_string(yaw);
+        ROS_INFO("[Navi]: Set orientation %s %s.", req.orientation.c_str(),str.c_str());
+        return true;
+    }
+    else
+    {
+        ROS_INFO("[Navi]: You are not in the manual mode.");
+        return false;
+    }
 }
 
 bool Navi::mode_cb (std_srvs::Empty::Request&  req,
