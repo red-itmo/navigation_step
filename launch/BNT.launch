@@ -10,7 +10,7 @@
 	<include file="$(find navigation_step)/launch/move_base.launch" />
 
 	<!-- AMCL -->
-	<include file="$(find youbot_navigation_global)/launch/amcl.launch" />
+	<include file="$(find navigation_step)/launch/amcl.launch" />
 
 	<!-- master and slave of a robot -->
 	<node name="master" type="master" pkg="navigation_step" output="screen" />

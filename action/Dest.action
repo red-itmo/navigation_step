@@ -1,0 +1,10 @@
+#goal definition
+string dest_loc
+string orientation
+uint32 duration
+---
+#result definition
+bool has_got
+---
+#feedback
+geometry_msgs/Pose2D to_pnt
