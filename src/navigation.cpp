@@ -25,6 +25,7 @@ Navi::Navi(std::string node_name): nh_("~"),
     set_orientation_srv = nh_.advertiseService("set_orientation",
                                                 &Navi::set_orientation_cb, this);
 
+    point_catcher_base_srv = nh_.advertiseService("point_catcher_base",&Navi::point_catcher_base_cb, this);
     point_catcher_srv = nh_.advertiseService("point_catcher",&Navi::point_catcher_cb, this);
     point_catcher_cli = nh_.serviceClient<navigation_step::PointData>("point_data");
 
@@ -61,28 +62,18 @@ void Navi::execute_cb(const navigation_step::DestGoalConstPtr &goal)
 
         move_base_ac.sendGoal(goal_mb);
         move_base_ac.waitForResult();
-        if(move_base_ac.getState() == actionlib::SimpleClientGoalState::SUCCEEDED) {
+        if(move_base_ac.getState() == actionlib::SimpleClientGoalState::SUCCEEDED)
+        {
             ros::Duration(goal->duration).sleep();
+            ROS_INFO("+++++++");
         }
-        else {
+        else
+        {
             result.has_got = false;
+            ROS_INFO("------");
         }
         dest_as.setSucceeded(result);
     }
-
-//     goal.target_pose.pose.position = point;
-//         // tf::Quaternion q(90, 0, 0);
-//         // goal.target_pose.pose.orientation.x = (double)q.x();
-//         // goal.target_pose.pose.orientation.y = (double)q.y();
-//         // goal.target_pose.pose.orientation.z = (double)q.z();
-//         // goal.target_pose.pose.orientation.w = (double)q.w();
-//     goal.target_pose.pose.orientation.w = 1;
-//         // goal.target_pose.pose.orientation.y = 0.707;
-//
-//     ROS_INFO("[+] Slave: sending goal-point {%f, %f}", point.x, point.y);
-//     slave_client.sendGoal(goal_mb);
-//
-//     ros::Duration(3).sleep();
 }
 
 
@@ -120,7 +111,9 @@ bool Navi::point_catcher_cb (std_srvs::Empty::Request&  req,
             br.sendTransform(tf::StampedTransform(transform, ros::Time::now(),
                              "/base_link", srv.response.name));
             try{
-                listener.lookupTransform("/map", srv.response.name, ros::Time(0), transform);
+                ros::Time now = ros::Time(0);
+                listener.waitForTransform("/map", srv.response.name, now, ros::Duration(0.4));
+                listener.lookupTransform("/map", srv.response.name, now, transform);
             }
             catch (tf::TransformException &ex)
             {
@@ -128,16 +121,52 @@ bool Navi::point_catcher_cb (std_srvs::Empty::Request&  req,
                 return false;
             }
             br.sendTransform(tf::StampedTransform(transform, ros::Time::now(),
-                             "/base_link", srv.response.name));
+                             "/map", srv.response.name));
 
             points[srv.response.name] = std::make_pair(transform.getOrigin().x()
                                                       ,transform.getOrigin().y());
+            dict_fs << srv.response.name << " -> " << std::to_string(transform.getOrigin().x())
+                    << " : " << std::to_string(transform.getOrigin().y()) << std::endl;
         }
         else
         {
             ROS_INFO("[Navi]: Failed to call service \"point_data\".");
             return false;
         }
+        return true;
+    }
+    else
+    {
+        ROS_INFO("[Navi]: You are not in the manual mode.");
+        return false;
+    }
+
+}
+
+bool Navi::point_catcher_base_cb (navigation_step::BasePoint::Request&  req,
+                                  navigation_step::BasePoint::Response& res)
+{
+    if ((mode & manual) == manual)
+    {
+        tf::TransformListener listener;
+        tf::StampedTransform transform;
+        static tf::TransformBroadcaster br;
+        try{
+            ros::Time now = ros::Time(0);
+            listener.waitForTransform("/map", "/base_link", now, ros::Duration(0.4));
+            listener.lookupTransform("/map", "/base_link", now, transform);
+        }
+        catch (tf::TransformException &ex)
+        {
+            ROS_ERROR("%s",ex.what());
+            return false;
+        }
+        br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), "/map", req.name));
+        points[req.name] = std::make_pair(transform.getOrigin().x(),
+                                          transform.getOrigin().y());
+        dict_fs << req.name << " -> " << std::to_string(transform.getOrigin().x())
+                << " : " << std::to_string(transform.getOrigin().y()) << std::endl;
+        ROS_INFO("[Navi]: %lf : %lf", transform.getOrigin().x(), transform.getOrigin().y());
         return true;
     }
     else
@@ -156,8 +185,11 @@ bool Navi::set_orientation_cb (navigation_step::SetOrientation::Request&  req,
         tf::TransformListener listener;
         tf::StampedTransform transform;
         double roll, pitch, yaw;
-        try{
-            listener.lookupTransform("/map", "/base_link", ros::Time(0), transform);
+        try
+        {
+            ros::Time now = ros::Time(0);
+            listener.waitForTransform("/map", "/base_link", now, ros::Duration(0.4));
+            listener.lookupTransform("/map", "/base_link", now, transform);
         }
         catch (tf::TransformException &ex)
         {
@@ -166,6 +198,7 @@ bool Navi::set_orientation_cb (navigation_step::SetOrientation::Request&  req,
         }
         transform.getBasis().getRPY(roll, pitch, yaw);
         points[req.orientation] = std::make_pair(yaw,0);
+        dict_fs << req.orientation << " -> " << std::to_string(yaw) << " : 0" << std::endl;
         std::string str = std::to_string(yaw);
         ROS_INFO("[Navi]: Set orientation %s %s.", req.orientation.c_str(),str.c_str());
         return true;
@@ -201,31 +234,14 @@ bool Navi::manual_cb (navigation_step::Manual::Request&  req,
     }
     else
     {
-        //Выбрать существующий словарь с приоритетом на основной mode
+        mode &= ~ld_pnts;
+
         if (req.dict == "current")
         {
             //Если точки уже были загружены, то используем основной
-            if ((mode & ld_pnts) == ld_pnts)
+            if ((mode & res_dict) == res_dict)//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
             {
-                dict_fs.open(dfile_path+"/points.dict", std::fstream::out |
-                                                        std::fstream::app |
-                                                        std::fstream::in);
-                if (dict_fs.is_open())
-                {
-                    mode |= manual;
-                    mode &= ~(res_dict);
-                    ROS_INFO("[Navi]: Manual mode on.");
-                }
-                else
-                {
-                    ROS_INFO("[Navi]: The dictionary exists but file can't be read. MAYDAY!");
-                    dict_fs.clear();
-                    return false;
-                }
-            }
-            else
-            {
-                //Иначе работаем с резервным
+                //работаем с резервным
                 struct stat buf;
                 std::string dname(dfile_path+"/points.dict.res");
                 if (stat(dname.c_str(), &buf) == 0)
@@ -233,15 +249,32 @@ bool Navi::manual_cb (navigation_step::Manual::Request&  req,
                     dict_fs.open(dname, std::fstream::out | std::fstream::app | std::fstream::in);
                     if (dict_fs.is_open())
                     {
-                        ROS_INFO("[Navi]: Manual mode on but the reserve dictionary is used.");
-                        mode |= manual | res_dict;
+                        ROS_INFO("[Navi]: Manual mode on. The reserve dictionary is used.");
+                        mode |= manual;
                     }
                     else
                     {
-                        ROS_INFO("[Navi]: The dictionary exists but can't be read. MAYDAY!");
+                        ROS_INFO("[Navi]: The reserve dictionary exists but can't be read. MAYDAY!");
                         dict_fs.clear();
                         return false;
                     }
+                }
+            }
+            else
+            {
+                dict_fs.open(dfile_path+"/points.dict", std::fstream::out |
+                                                        std::fstream::app |
+                                                        std::fstream::in);
+                if (dict_fs.is_open())
+                {
+                    mode |= manual;
+                    ROS_INFO("[Navi]: Manual mode on.");
+                }
+                else
+                {
+                    ROS_INFO("[Navi]: The main dictionary exists but file can't be read. MAYDAY!");
+                    dict_fs.clear();
+                    return false;
                 }
             }
         }

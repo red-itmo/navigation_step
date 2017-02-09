@@ -12,11 +12,6 @@
 	<!-- AMCL -->
 	<include file="$(find navigation_step)/launch/amcl.launch" />
 
-	<!-- master and slave of a robot -->
-	<node name="master" type="master" pkg="navigation_step" output="screen" />
-	<node name="slave" type="slave" pkg="navigation_step"   output="screen"/>
-
-
 	<!-- Rviz -->
 	<node name="rviz" pkg="rviz" type="rviz"
 		args="-d $(find navigation_step)/rviz/BNT.rviz" />

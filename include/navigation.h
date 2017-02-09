@@ -31,6 +31,7 @@
 
 #include <navigation_step/DestAction.h>
 #include <navigation_step/SetOrientation.h>
+#include <navigation_step/BasePoint.h>
 #include <navigation_step/PointData.h>
 #include <navigation_step/Manual.h>
 #include <navigation_step/Twist.h>
@@ -79,6 +80,7 @@ class Navi
 
         ros::ServiceClient point_catcher_cli;
         ros::ServiceServer point_catcher_srv;
+        ros::ServiceServer point_catcher_base_srv;
 
         bool stop_cb (std_srvs::Empty::Request&, std_srvs::Empty::Response&);
         bool mode_cb (std_srvs::Empty::Request&, std_srvs::Empty::Response&);
@@ -87,6 +89,7 @@ class Navi
         bool manual_cb (navigation_step::Manual::Request&, navigation_step::Manual::Response&);
         bool dict_cb (navigation_step::Dict::Request&, navigation_step::Dict::Response&);
         bool point_catcher_cb (std_srvs::Empty::Request&, std_srvs::Empty::Response&);
+        bool point_catcher_base_cb (navigation_step::BasePoint::Request&, navigation_step::BasePoint::Response&);
 
         ros::Publisher twist_pub;
         geometry_msgs::Twist twist_msg;
