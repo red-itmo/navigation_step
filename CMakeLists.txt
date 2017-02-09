@@ -30,6 +30,7 @@ Twist.srv
 Manual.srv
 Dict.srv
 PointData.srv
+BasePoint.srv
 SetOrientation.srv
 )
 
