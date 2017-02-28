@@ -2,6 +2,12 @@
 
 <launch>
 
+	<node name="hokuyo" pkg="hokuyo_node" type="hokuyo_node">
+		<param name="port" type="string" value="/dev/ttyACM0" />
+	</node>
+
+	<node pkg="tf" type="static_transform_publisher" name="lidar_frame" args="0.29 0 0 0 0 0 /base_link /laser 50" />
+
 	<!-- map_server wiht pre-recorded map -->
 	<node name="map_server" type="map_server" pkg="map_server"
 		args="$(find navigation_step)/map/map.yaml" />

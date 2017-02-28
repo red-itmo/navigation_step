@@ -65,7 +65,8 @@ void Navi::execute_cb(const navigation_step::DestGoalConstPtr &goal)
         if(move_base_ac.getState() == actionlib::SimpleClientGoalState::SUCCEEDED)
         {
             ros::Duration(goal->duration).sleep();
-            ROS_INFO("+++++++");
+            ROS_INFO("Point: %lf %lf",points[goal->dest_loc].first,
+                                      points[goal->dest_loc].second);
         }
         else
         {

@@ -1,5 +1,11 @@
 <launch>
 
+<node name="hokuyo" pkg="hokuyo_node" type="hokuyo_node">
+    <param name="port" type="string" value="/dev/ttyACM0" />
+</node>
+
+<node pkg="tf" type="static_transform_publisher" name="lidar_frame" args="0.29 0 0 0 0 0 /base_link /laser 50" />
+
     <node pkg="gmapping" type="slam_gmapping" name="slam_gmapping">
        <!-- <remap from="scan" to="base_scan"/>-->
         <param name="minimumScore" value="50"/>
