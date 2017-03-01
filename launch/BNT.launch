@@ -18,8 +18,8 @@
 	<!-- AMCL -->
 	<include file="$(find navigation_step)/launch/amcl.launch" />
 
-	<!-- Rviz -->
+	<!-- Rviz 
 	<node name="rviz" pkg="rviz" type="rviz"
-		args="-d $(find navigation_step)/rviz/BNT.rviz" />
+		args="-d $(find navigation_step)/rviz/BNT.rviz" /> -->
 
 </launch>

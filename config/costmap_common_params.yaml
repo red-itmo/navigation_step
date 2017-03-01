@@ -1,5 +1,4 @@
 map_type: costmap
-transform_tolerance: 0.3
 obstacle_range: 5.0
 raytrace_range: 5.0
 inflation_radius: 0.4
@@ -9,7 +8,7 @@ transform_tolerance: 0.6
 
 observation_sources: scan
 
-scan: {sensor_frame: base_laser,
+scan: {sensor_frame: laser,
             data_type: LaserScan,
             topic: /scan,
             expected_update_rate: 0.2,
