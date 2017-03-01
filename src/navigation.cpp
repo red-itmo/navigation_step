@@ -41,7 +41,7 @@ void Navi::execute_cb(const navigation_step::DestGoalConstPtr &goal)
     ros::Rate r(1);
     //bool success = true;
 
-    while(!move_base_ac.waitForServer(ros::Duration(5.0))){
+    while(!move_base_ac.waitForServer(ros::Duration(10.0))){
         ROS_INFO("Waiting for the move_base action server to come up");
     }
     if (!move_base_ac.isServerConnected())
@@ -113,7 +113,7 @@ bool Navi::point_catcher_cb (std_srvs::Empty::Request&  req,
                              "/base_link", srv.response.name));
             try{
                 ros::Time now = ros::Time(0);
-                listener.waitForTransform("/map", srv.response.name, now, ros::Duration(0.4));
+                listener.waitForTransform("/map", srv.response.name, now, ros::Duration(40));
                 listener.lookupTransform("/map", srv.response.name, now, transform);
             }
             catch (tf::TransformException &ex)
@@ -154,7 +154,7 @@ bool Navi::point_catcher_base_cb (navigation_step::BasePoint::Request&  req,
         static tf::TransformBroadcaster br;
         try{
             ros::Time now = ros::Time(0);
-            listener.waitForTransform("/map", "/base_link", now, ros::Duration(0.4));
+            listener.waitForTransform("/map", "/base_link", now, ros::Duration(20));
             listener.lookupTransform("/map", "/base_link", now, transform);
         }
         catch (tf::TransformException &ex)
@@ -189,7 +189,7 @@ bool Navi::set_orientation_cb (navigation_step::SetOrientation::Request&  req,
         try
         {
             ros::Time now = ros::Time(0);
-            listener.waitForTransform("/map", "/base_link", now, ros::Duration(0.4));
+            listener.waitForTransform("/map", "/base_link", now, ros::Duration(20));
             listener.lookupTransform("/map", "/base_link", now, transform);
         }
         catch (tf::TransformException &ex)
