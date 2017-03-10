@@ -37,9 +37,8 @@ void Navi::execute_cb(const navigation_step::DestGoalConstPtr &goal)
 {
 
     navigation_step::DestResult result;
-    result.has_got = true;
-    ros::Rate r(1);
-    //bool success = true;
+    result.has_got = false;
+    ros::Rate r(4);
 
     while(!move_base_ac.waitForServer(ros::Duration(10.0))){
         ROS_INFO("Waiting for the move_base action server to come up");
@@ -52,28 +51,53 @@ void Navi::execute_cb(const navigation_step::DestGoalConstPtr &goal)
     }
     else
     {
+        actionlib::SimpleClientGoalState state_as = move_base_ac.getState();
+        bool completed = false;
+
         move_base_msgs::MoveBaseGoal goal_mb;
         goal_mb.target_pose.header.frame_id = "/map";
         goal_mb.target_pose.header.stamp = ros::Time();
         goal_mb.target_pose.pose.position.x = points[goal->dest_loc].first;
         goal_mb.target_pose.pose.position.y = points[goal->dest_loc].second;
         goal_mb.target_pose.pose.orientation = tf::createQuaternionMsgFromYaw(points[goal->orientation].first);
-        ROS_INFO("Some info about the goal.");
+        ROS_INFO("Reseived goal: %s", goal->dest_loc.c_str());
+        ROS_INFO("Point: %lf %lf",points[goal->dest_loc].first,
+                                      points[goal->dest_loc].second);
 
         move_base_ac.sendGoal(goal_mb);
-        move_base_ac.waitForResult();
-        if(move_base_ac.getState() == actionlib::SimpleClientGoalState::SUCCEEDED)
+        while(ros::ok() && !completed)
         {
-            ros::Duration(goal->duration).sleep();
-            ROS_INFO("Point: %lf %lf",points[goal->dest_loc].first,
-                                      points[goal->dest_loc].second);
+            //
+            if(dest_as.isPreemptRequested() || !ros::ok())
+            {
+                dest_as.setPreempted(result);
+                ROS_INFO("%s: Preempted/Canceled", dest_as_name.c_str());
+                completed = true;
+            }
+
+            state_as = move_base_ac.getState();
+            //PENDING, ACTIVE, RECALLED, REJECTED, PREEMPTED, ABORTED, SUCCEEDED, LOST.
+            //move_base_ac.waitForResult();
+            if(state_as.state_ == actionlib::SimpleClientGoalState::SUCCEEDED)
+            {
+                ros::Duration(goal->duration).sleep();
+                result.has_got = true;
+                dest_as.setSucceeded(result);
+                completed = true;
+            }
+            else if (state_as.state_ == actionlib::SimpleClientGoalState::PENDING || 
+                     state_as.state_ == actionlib::SimpleClientGoalState::ACTIVE)
+            {
+                r.sleep();   
+            }
+            else
+            {
+                dest_as.setAborted(result);
+                ROS_INFO("Move_base has ended with one of this terminal states: ");
+                ROS_INFO("RECALLED, REJECTED, PREEMPTED, ABORTED or LOST.");
+                completed = true;
+            }
         }
-        else
-        {
-            result.has_got = false;
-            ROS_INFO("------");
-        }
-        dest_as.setSucceeded(result);
     }
 }
 
@@ -220,14 +244,14 @@ bool Navi::mode_cb (std_srvs::Empty::Request&  req,
 }
 
 
-//Режим для ручного управления и работы со словарями
-//В запросе должна содержаться строка:
+//The function turn on the manual mode
+//As an argument function can get one of this strings:
 // current / new / reserve / movement_only
-//Выход из режима и загрузка словаря вызовом сервиса stop
+//To turn it off call "stop" service
 bool Navi::manual_cb (navigation_step::Manual::Request&  req,
                       navigation_step::Manual::Response& res)
 {
-    //Проверка текущего режима
+    //checking for collision of the modes
     if (((mode & move_to_point) == move_to_point) || ((mode & twisting) == twisting))
     {
         ROS_INFO("[Navi]: Call stop service!");
@@ -240,7 +264,7 @@ bool Navi::manual_cb (navigation_step::Manual::Request&  req,
         if (req.dict == "current")
         {
             //Если точки уже были загружены, то используем основной
-            if ((mode & res_dict) == res_dict)//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+            if ((mode & res_dict) == res_dict)
             {
                 //работаем с резервным
                 struct stat buf;
@@ -280,10 +304,9 @@ bool Navi::manual_cb (navigation_step::Manual::Request&  req,
             }
         }
 
-        //Используем новый словарь
+        //choosing a new dictionary
         else if (req.dict == "new")
         {
-            //Проверка наличия директории в пакете
             boost::filesystem::path dir_name(dfile_path);
             if(!(boost::filesystem::exists(dir_name)))
                 boost::filesystem::create_directory(dir_name);
