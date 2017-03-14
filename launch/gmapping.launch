@@ -1,7 +1,7 @@
 <launch>
 
 <node name="hokuyo" pkg="hokuyo_node" type="hokuyo_node">
-    <param name="port" type="string" value="/dev/ttyACM1" />
+    <param name="port" type="string"value="/dev/serial/by-id/usb-Hokuyo_Data_Flex_for_USB_URG-Series_USB_Driver-if00"/>
 </node>
 
 <node pkg="tf" type="static_transform_publisher" name="lidar_frame" args="0.29 0 0 0 0 0 /base_link /laser 50" />

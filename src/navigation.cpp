@@ -71,8 +71,13 @@ void Navi::execute_cb(const navigation_step::DestGoalConstPtr &goal)
             if(dest_as.isPreemptRequested() || !ros::ok())
             {
                 dest_as.setPreempted(result);
+				move_base_ac.cancelGoal();
                 ROS_INFO("%s: Preempted/Canceled", dest_as_name.c_str());
                 completed = true;
+				twist_msg.linear.x = 0;
+				twist_msg.linear.y = 0;
+				twist_msg.angular.z = 0;
+				twist_pub.publish(twist_msg);
             }
 
             state_as = move_base_ac.getState();
