@@ -7,12 +7,6 @@
   <maintainer email="Nicko_Dema@protonmail.com">Nickolay Dema</maintainer>
   <license>GPLv3</license>
 
-
-  <!-- Url tags are optional, but mutiple are allowed, one per tag -->
-  <!-- Optional attribute type can be: website, bugtracker, or repository -->
-  <!-- Example: -->
-  <!-- <url type="website">http://wiki.ros.org/agitr</url> -->
-
   <!-- The *_depend tags are used to specify dependencies -->
   <!-- Dependencies can be catkin packages or system dependencies -->
   <!-- Examples: -->

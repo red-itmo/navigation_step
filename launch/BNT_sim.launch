@@ -1,0 +1,31 @@
+<!-- Launches all nodes required to accomplish Basic Navigation Test -->
+
+<launch>
+
+<!--	<param name="use_sim_time" value="true"/>-->
+
+	<!--
+	<node name="hokuyo" pkg="hokuyo_node" type="hokuyo_node">
+		<param name="port" type="string" value="/dev/serial/by-id/usb-Hokuyo_Data_Flex_for_USB_URG-Series_USB_Driver-if00" />
+	</node>
+
+	<node pkg="tf" type="static_transform_publisher" name="lidar_frame" args="0.29 0 0 0 0 0 /base_link /laser 50" />
+	-->
+
+	<!-- map_server wiht pre-recorded map -->
+	<node name="map_server" type="map_server" pkg="map_server"
+		args="$(find navigation_step)/map/map.yaml" />
+
+	<!-- move_base with params -->
+	<include file="$(find navigation_step)/launch/move_base.launch" />
+
+	<!-- AMCL -->
+	<include file="$(find navigation_step)/launch/amcl.launch" />
+
+
+
+	<!-- Rviz 
+	<node name="rviz" pkg="rviz" type="rviz"
+		args="-d $(find navigation_step)/rviz/BNT.rviz" /> -->
+
+</launch>

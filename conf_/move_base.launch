@@ -6,8 +6,7 @@
         <rosparam file="$(find navigation_step)/config2/costmap_common_params.yaml" command="load" ns="local_costmap" />
         <rosparam file="$(find navigation_step)/config2/local_costmap_params.yaml" command="load" />
         <rosparam file="$(find navigation_step)/config2/global_costmap_params.yaml" command="load" />
-        <rosparam file="$(find navigation_step)/config2/eband_local_planner_params.yaml" command="load" />
-        <rosparam file="$(find navigation_step)/config2/base_global_planner_params.yaml" command="load" />
+        <rosparam file="$(find navigation_step)/config2/base_local_planner_params.yaml" command="load" />
     <!--<rosparam file="$(find navigation_step)/config/move_base_general.yaml" command="load" />-->
     </node>
 
