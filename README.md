@@ -1,6 +1,6 @@
-#navigation_step
+# navigation_step
 
-##Instalation
+## Instalation
 
 1) Install youBot ROS packages
 
@@ -24,7 +24,7 @@
 
 7) Copy the compiled libraries libv_repExtyouBot.so, libv_repExtRos.so and libv_repExtyouBot.so into your /opt/v-rep directory
 
-##Usage
+## Usage
 
 1) Start ros
 
@@ -37,6 +37,7 @@
 3) Open a scene in v-rep and run a BNT.launch file
 
 --------------------------------
+Old version of the gcc does not support regexp, so installing of a newer version is required:
 
     $ sudo add-apt-repository ppa:ubuntu-toolchain-r/test
     $ sudo apt-get update

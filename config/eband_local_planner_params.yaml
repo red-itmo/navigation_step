@@ -9,4 +9,4 @@ EBandPlannerROS:
     xy_goal_tolerance: 0.04
     yaw_goal_tolerance: 0.5
 
-    eband_external_force_gain: 2.0
+    eband_external_force_gain: 10.0
