@@ -17,7 +17,7 @@ Navi::Navi(std::string node_name): nh_("~"),
     dest_as.start();
     twist_pub = nh_.advertise<geometry_msgs::Twist>("/cmd_vel", 2, true); //??
 
-    set_twist_srv = nh_.advertiseService("set_twist", &Navi::set_twist_cb, this);
+    //set_twist_srv = nh_.advertiseService("set_twist", &Navi::set_twist_cb, this);
     manual_srv = nh_.advertiseService("manual",&Navi::manual_cb, this);
     stop_srv = nh_.advertiseService("stop", &Navi::stop_cb, this);
     dict_srv = nh_.advertiseService("dict",&Navi::dict_cb, this);
@@ -40,12 +40,18 @@ void Navi::execute_cb(const navigation_step::DestGoalConstPtr &goal)
     result.has_got = false;
     ros::Rate r(4);
 
-    while(!move_base_ac.waitForServer(ros::Duration(10.0))){
+    while(!move_base_ac.waitForServer(ros::Duration(5.0)))
+    {
+        if(dest_as.isPreemptRequested())
+        {
+            ROS_INFO("Preempt request is received");
+            break;
+        }
         ROS_INFO("Waiting for the move_base action server to come up");
     }
     if (!move_base_ac.isServerConnected())
     {
-        ROS_INFO("Connection to move_base action server filed.");
+        ROS_INFO("Connection to move_base action server failed.");
         result.has_got = false;
         dest_as.setAborted(result);
     }
@@ -57,12 +63,55 @@ void Navi::execute_cb(const navigation_step::DestGoalConstPtr &goal)
         move_base_msgs::MoveBaseGoal goal_mb;
         goal_mb.target_pose.header.frame_id = "/map";
         goal_mb.target_pose.header.stamp = ros::Time();
-        goal_mb.target_pose.pose.position.x = points[goal->dest_loc].first;
-        goal_mb.target_pose.pose.position.y = points[goal->dest_loc].second;
-        goal_mb.target_pose.pose.orientation = tf::createQuaternionMsgFromYaw(points[goal->orientation].first);
-        ROS_INFO("Reseived goal: %s", goal->dest_loc.c_str());
-        ROS_INFO("Point: %lf %lf",points[goal->dest_loc].first,
-                                      points[goal->dest_loc].second);
+
+        if (goal->task == "point")
+        {
+            goal_mb.target_pose.pose.position.x = points[goal->target_point].first;
+            goal_mb.target_pose.pose.position.y = points[goal->target_point].second;
+            goal_mb.target_pose.pose.orientation = tf::createQuaternionMsgFromYaw(points[goal->orientation].first);
+            ROS_INFO("Reseived goal: %s", goal->target_point.c_str());
+            ROS_INFO("Point: %lf %lf",points[goal->target_point].first,
+                                          points[goal->target_point].second);
+        }
+        else if (goal->task == "dist")
+        {
+            double roll, pitch, yaw;
+            if (goal->dist.x > 0.2 || goal->dist.y > 0.5 || goal->dist.theta > 0.2)
+            {
+                ROS_INFO("Actionlib client trying to move base at the distance more then allowed.");
+                result.has_got = false;
+                dest_as.setAborted(result);
+                ROS_INFO("Goal is rejected");
+                completed = true;
+            }
+            tf::TransformListener listener;
+            tf::StampedTransform transform;
+            static tf::TransformBroadcaster br;
+            try{
+                ros::Time now = ros::Time(0);
+                listener.waitForTransform("/map", "/base_link", now, ros::Duration(20));
+                listener.lookupTransform("/map", "/base_link", now, transform);
+            }
+            catch (tf::TransformException &ex)
+            {
+                ROS_ERROR("%s",ex.what());
+                return;
+            }
+            transform.getBasis().getRPY(roll, pitch, yaw);
+            goal_mb.target_pose.pose.position.x = transform.getOrigin().x() + goal->dist.x;
+            goal_mb.target_pose.pose.position.y = transform.getOrigin().y() + goal->dist.y;
+            goal_mb.target_pose.pose.orientation = tf::createQuaternionMsgFromYaw(goal->dist.theta + yaw);
+            ROS_INFO("Reseived goal: moving to the certain distance");
+            ROS_INFO("distance by x, y and theta: %lf | %lf | %lf",goal->dist.x,
+                                          goal->dist.y, goal->dist.theta);
+        }
+        else
+        {
+            ROS_INFO("Wrong value in the task field | Goal is rejected");
+            result.has_got = false;
+            dest_as.setAborted(result);
+            completed = true;
+        }
 
         move_base_ac.sendGoal(goal_mb);
         while(ros::ok() && !completed)
@@ -70,14 +119,14 @@ void Navi::execute_cb(const navigation_step::DestGoalConstPtr &goal)
             //
             if(dest_as.isPreemptRequested() || !ros::ok())
             {
+                move_base_ac.cancelGoal();
                 dest_as.setPreempted(result);
-				move_base_ac.cancelGoal();
                 ROS_INFO("%s: Preempted/Canceled", dest_as_name.c_str());
                 completed = true;
-				twist_msg.linear.x = 0;
-				twist_msg.linear.y = 0;
-				twist_msg.angular.z = 0;
-				twist_pub.publish(twist_msg);
+	    		twist_msg.linear.x = 0;
+	    		twist_msg.linear.y = 0;
+	    		twist_msg.angular.z = 0;
+	    		twist_pub.publish(twist_msg);
             }
 
             state_as = move_base_ac.getState();
@@ -90,16 +139,16 @@ void Navi::execute_cb(const navigation_step::DestGoalConstPtr &goal)
                 dest_as.setSucceeded(result);
                 completed = true;
             }
-            else if (state_as.state_ == actionlib::SimpleClientGoalState::PENDING || 
+            else if (state_as.state_ == actionlib::SimpleClientGoalState::PENDING ||
                      state_as.state_ == actionlib::SimpleClientGoalState::ACTIVE)
             {
-                r.sleep();   
+                r.sleep();
             }
             else
             {
                 dest_as.setAborted(result);
                 ROS_INFO("Move_base has ended with one of this terminal states: ");
-                ROS_INFO("RECALLED, REJECTED, PREEMPTED, ABORTED or LOST.");
+                ROS_INFO("RECALLED, PREEMPTED, ABORTED or LOST");
                 completed = true;
             }
         }
@@ -107,23 +156,23 @@ void Navi::execute_cb(const navigation_step::DestGoalConstPtr &goal)
 }
 
 
-bool Navi::set_twist_cb (navigation_step::Twist::Request&  req,
-                         navigation_step::Twist::Response& res)
-{
-    if ((mode & move_to_point) == move_to_point) {
-        ROS_INFO("[Navi]: Somebody's trying to move base while move_base work.");
-        return false;
-    }
-    else
-    {
-        mode |= twisting;
-        twist_msg.linear.x = req.twist.linear.x;
-        twist_msg.linear.y = req.twist.linear.y;
-        twist_msg.angular.z = req.twist.angular.z;
-        ROS_INFO("[Navi]: Twisting mode is set.");
-        return true;
-    }
-}
+// bool Navi::set_twist_cb (navigation_step::Twist::Request&  req,
+//                          navigation_step::Twist::Response& res)
+// {
+//     if ((mode & move_to_point) == move_to_point) {
+//         ROS_INFO("[Navi]: Somebody's trying to move base while move_base work.");
+//         return false;
+//     }
+//     else
+//     {
+//         mode |= twisting;
+//         twist_msg.linear.x = req.twist.linear.x;
+//         twist_msg.linear.y = req.twist.linear.y;
+//         twist_msg.angular.z = req.twist.angular.z;
+//         ROS_INFO("[Navi]: Twisting mode is set.");
+//         return true;
+//     }
+// }
 
 bool Navi::point_catcher_cb (std_srvs::Empty::Request&  req,
                              std_srvs::Empty::Response& res)
@@ -518,7 +567,7 @@ bool Navi::load_points()
 Navi::~Navi()
 {
     twist_pub.shutdown();
-    set_twist_srv.shutdown();
+    //set_twist_srv.shutdown();
     stop_srv.shutdown();
     manual_srv.shutdown();
 }
