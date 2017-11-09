@@ -2,9 +2,9 @@ EBandPlannerROS:
     #holonomic
     differential_drive: false
     max_acceleration: 0.8
-    max_vel_lin: 1.8
+    max_vel_lin: 0.14
     max_vel_th: 0.7
-    min_vel_lin: 0.1
+    min_vel_lin: 0.03
     min_vel_th: 0.0
     xy_goal_tolerance: 0.04
     yaw_goal_tolerance: 0.5

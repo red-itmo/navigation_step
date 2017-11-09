@@ -11,7 +11,8 @@ Navi::Navi(std::string node_name): nh_("~"),
     dest_as(nh_, node_name, boost::bind(&Navi::execute_cb, this, _1), false),
     dest_as_name(node_name+"_dest_as"),
     move_base_ac("move_base", true),
-    pnt_extr_regex("^[\\s]*([[:alnum:]]+)[\\s]*->[\\s]*([\\+|-]?(\\d+\\.?\\d*)|(\\.\\d+))"
+    pnt_extr_regex("^[\\s]*([[:alnum:]]+|[[:alnum:]]+[\\s][[:alnum:]]+)[\\s]*->"
+               "[\\s]*([\\+|-]?(\\d+\\.?\\d*)|(\\.\\d+))"
                "[\\s]*:{1}[\\s]*([\\+|-]?(\\d+\\.?\\d*)|(\\.\\d+))")
 {
     dest_as.start();
@@ -57,7 +58,6 @@ void Navi::execute_cb(const navigation_step::DestGoalConstPtr &goal)
     }
     else
     {
-        actionlib::SimpleClientGoalState state_as = move_base_ac.getState();
         bool completed = false;
 
         move_base_msgs::MoveBaseGoal goal_mb;
@@ -76,31 +76,46 @@ void Navi::execute_cb(const navigation_step::DestGoalConstPtr &goal)
         else if (goal->task == "dist")
         {
             double roll, pitch, yaw;
-            if (goal->dist.x > 0.2 || goal->dist.y > 0.5 || goal->dist.theta > 0.2)
-            {
-                ROS_INFO("Actionlib client trying to move base at the distance more then allowed.");
-                result.has_got = false;
-                dest_as.setAborted(result);
-                ROS_INFO("Goal is rejected");
-                completed = true;
-            }
+            // if (goal->dist.x > 0.2 || goal->dist.y > 0.5 )//|| goal->dist.theta > 0.2)
+            // {
+            //     ROS_INFO("Actionlib client trying to move base at the distance more then allowed.");
+            //     result.has_got = false;
+            //     dest_as.setAborted(result);
+            //     ROS_INFO("Goal is rejected");
+            //     return;
+            // }
             tf::TransformListener listener;
             tf::StampedTransform transform;
             static tf::TransformBroadcaster br;
+
+            ros::Duration(1).sleep();
+
+            transform.setOrigin(tf::Vector3(goal->dist.x, goal->dist.y, 0.0));
+            tf::Quaternion Q = tf::createQuaternionFromYaw(goal->dist.theta);
+            transform.setRotation(Q);
+            ros::Time time_t = ros::Time::now();
+            br.sendTransform(tf::StampedTransform(transform, time_t,
+                             "/base_link", "pose_from_man"));
+
+            // For tf, time 0 means "the latest available" transform in the buffer.
+            // Now, change this line to get the transform at the current time, "now()"
             try{
-                ros::Time now = ros::Time(0);
-                listener.waitForTransform("/map", "/base_link", now, ros::Duration(20));
-                listener.lookupTransform("/map", "/base_link", now, transform);
+                // ros::Time now = ros::Time(0);
+                listener.waitForTransform("/map", "pose_from_man", ros::Time(0), ros::Duration(1));
+                listener.lookupTransform("/map", "pose_from_man", ros::Time(0), transform);
             }
             catch (tf::TransformException &ex)
             {
                 ROS_ERROR("%s",ex.what());
+                result.has_got = false;
+                dest_as.setAborted(result);
                 return;
             }
+
             transform.getBasis().getRPY(roll, pitch, yaw);
-            goal_mb.target_pose.pose.position.x = transform.getOrigin().x() + goal->dist.x;
-            goal_mb.target_pose.pose.position.y = transform.getOrigin().y() + goal->dist.y;
-            goal_mb.target_pose.pose.orientation = tf::createQuaternionMsgFromYaw(goal->dist.theta + yaw);
+            goal_mb.target_pose.pose.position.x = transform.getOrigin().x();
+            goal_mb.target_pose.pose.position.y = transform.getOrigin().y();
+            goal_mb.target_pose.pose.orientation = tf::createQuaternionMsgFromYaw(yaw);
             ROS_INFO("Reseived goal: moving to the certain distance");
             ROS_INFO("distance by x, y and theta: %lf | %lf | %lf",goal->dist.x,
                                           goal->dist.y, goal->dist.theta);
@@ -112,8 +127,10 @@ void Navi::execute_cb(const navigation_step::DestGoalConstPtr &goal)
             dest_as.setAborted(result);
             completed = true;
         }
+        ROS_INFO("5");
 
         move_base_ac.sendGoal(goal_mb);
+        actionlib::SimpleClientGoalState state_ac = move_base_ac.getState();
         while(ros::ok() && !completed)
         {
             //
@@ -129,18 +146,18 @@ void Navi::execute_cb(const navigation_step::DestGoalConstPtr &goal)
 	    		twist_pub.publish(twist_msg);
             }
 
-            state_as = move_base_ac.getState();
+            state_ac = move_base_ac.getState();
             //PENDING, ACTIVE, RECALLED, REJECTED, PREEMPTED, ABORTED, SUCCEEDED, LOST.
             //move_base_ac.waitForResult();
-            if(state_as.state_ == actionlib::SimpleClientGoalState::SUCCEEDED)
+            if(state_ac.state_ == actionlib::SimpleClientGoalState::SUCCEEDED)
             {
                 ros::Duration(goal->duration).sleep();
                 result.has_got = true;
                 dest_as.setSucceeded(result);
                 completed = true;
             }
-            else if (state_as.state_ == actionlib::SimpleClientGoalState::PENDING ||
-                     state_as.state_ == actionlib::SimpleClientGoalState::ACTIVE)
+            else if (state_ac.state_ == actionlib::SimpleClientGoalState::PENDING ||
+                     state_ac.state_ == actionlib::SimpleClientGoalState::ACTIVE)
             {
                 r.sleep();
             }
@@ -489,13 +506,13 @@ bool Navi::init_dict_load()
 {
     std::string line;
     //Попытка найти словарь в соответствующей директории пакета.
-    std::regex reg("/home.+/src", std::regex_constants::ECMAScript |
+    std::regex reg("/home/ub/uws/src/navigation_step", std::regex_constants::ECMAScript |
                                   std::regex_constants::icase);
     std::smatch res;
     std::string pac_path = std::getenv("ROS_PACKAGE_PATH");
 
     if (std::regex_search(pac_path,res, reg))
-        dfile_path = res.str()+"/navigation_step/dict";
+        dfile_path = res.str()+"/dict";
 
     ROS_INFO("[Navi]: Trying to load a dictionary (dict/points.dict).");
     dict_fs.open(dfile_path+"/points.dict", std::fstream::in);
@@ -509,12 +526,32 @@ bool Navi::init_dict_load()
     }
     else
     {
+        std::string pname;
         //Переопределяем регулярное выражение для получения значений точек
         reg.assign(pnt_extr_regex, std::regex_constants::ECMAScript | std::regex_constants::icase);
         while (std::getline(dict_fs, line))
         {
             if (std::regex_search(line, res, reg)) {
                 points[res[1]] = std::make_pair(std::stod(res[2]),std::stod(res[5]));
+                pname = res[0];
+                ROS_INFO("%s",pname.c_str());
+                pname = res[1];
+                ROS_INFO("%s",pname.c_str());
+                pname = res[2];
+                ROS_INFO("%s",pname.c_str());
+                pname = res[3];
+                ROS_INFO("%s",pname.c_str());
+                pname = res[4];
+                ROS_INFO("%s",pname.c_str());
+                pname = res[5];
+                ROS_INFO("%s",pname.c_str());
+                pname = res[6];
+                ROS_INFO("%s",pname.c_str());
+                pname = res[7];
+                ROS_INFO("%s",pname.c_str());
+                pname = res[8];
+                ROS_INFO("%s",pname.c_str());
+
             }
         }
         ROS_INFO("[Navi]: %lu point(s) has been loaded.", points.size());

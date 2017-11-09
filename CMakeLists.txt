@@ -13,6 +13,7 @@ find_package (catkin REQUIRED COMPONENTS
 	actionlib_msgs
 	tf
 )
+#add_compile_options(-std=c++11)
 
 find_package (Boost REQUIRED COMPONENTS filesystem)
 

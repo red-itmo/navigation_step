@@ -6,9 +6,12 @@
 
   <node pkg="tf" type="static_transform_publisher" name="lidar_frame" args="0.325 0 0 0 0 0 /base_link /laser 50" />
 
-  <node pkg="gmapping" type="slam_gmapping" name="slam_gmapping">
-    <rosparam file="$(find navigation_step)/config/gmapping_params.yaml" command="load" />
-    <!-- <remap from="scan" to="base_scan"/>-->
+  <!-- map_server wiht pre-recorded map -->
+  <node name="map_server" type="map_server" pkg="map_server" args="$(find navigation_step)/map/map.yaml" />
+
+  <node pkg="amcl" type="amcl" name="amcl">
+    <rosparam file="$(find navigation_step)/config/amcl_params.yaml" command="load" />
+    <!--<remap from="scan" to="/vrep/scan"/>-->
   </node>
 
 </launch>

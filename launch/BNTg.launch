@@ -16,7 +16,10 @@
 	<include file="$(find navigation_step)/launch/move_base_teb.launch" />
 
 	<!-- AMCL -->
-	<include file="$(find navigation_step)/launch/amcl_old.launch" />
+	<include file="$(find navigation_step)/launch/amcl.launch" />
+
+	<!--gmapping-->
+	
 
 	<!-- Rviz 
 	<node name="rviz" pkg="rviz" type="rviz"
